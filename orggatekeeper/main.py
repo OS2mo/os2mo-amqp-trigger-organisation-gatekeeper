@@ -300,8 +300,8 @@ def create_app(  # pylint: disable=too-many-statements
             healthchecks["AMQP"] = context["amqp_system"].healthcheck()
             # Check GraphQL connection (gql_client)
             healthchecks["GraphQL"] = await healthcheck_gql(context["gql_client"])
-            # Check Service API connection (model_client)
-            healthchecks["Service API"] = await healthcheck_model_client(
+            # Check Model Client connection (model_client)
+            healthchecks["Model Client"] = await healthcheck_model_client(
                 context["model_client"]
             )
         except Exception:  # pylint: disable=broad-except
