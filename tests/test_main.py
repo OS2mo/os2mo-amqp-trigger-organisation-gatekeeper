@@ -246,13 +246,13 @@ async def test_readiness_endpoint(
 
     model_client_response = MagicMock()
     if model_ok:
-        model_client_response.json.return_value = [
-            {"uuid": "35304fa6-ff84-4ea4-aac9-a285995ab45b"}
-        ]
+        model_client_response.json.return_value = {
+            "data": {"org": {"uuid": "35304fa6-ff84-4ea4-aac9-a285995ab45b"}}
+        }
     else:
         model_client_response.json.return_value = "BOOM"
     model_client = AsyncMock()
-    model_client.async_httpx_client.get.return_value = model_client_response
+    model_client.async_httpx_client.post.return_value = model_client_response
 
     amqp_system = MagicMock()
     amqp_system.healthcheck.return_value = amqp_ok
@@ -269,9 +269,16 @@ async def test_readiness_endpoint(
 
     assert len(gql_client.execute.mock_calls) == 1
     print(model_client.mock_calls)
+    query = """
+        query HealthcheckQuery {
+            org {
+                uuid
+            }
+        }
+        """
     assert model_client.mock_calls == [
-        call.async_httpx_client.get("/service/o/"),
-        call.async_httpx_client.get().json(),
+        call.async_httpx_client.post("/graphql/v22", json={"query": query}),
+        call.async_httpx_client.post().json(),
     ]
     assert amqp_system.mock_calls == [call.healthcheck()]
 
@@ -309,13 +316,13 @@ async def test_readiness_endpoint_exception(
 
     model_client_response = MagicMock()
     if model_ok:
-        model_client_response.json.return_value = [
-            {"uuid": "35304fa6-ff84-4ea4-aac9-a285995ab45b"}
-        ]
+        model_client_response.json.return_value = {
+            "data": {"org": {"uuid": "35304fa6-ff84-4ea4-aac9-a285995ab45b"}}
+        }
     else:
         model_client_response.json.side_effect = ValueError("BOOM")
     model_client = AsyncMock()
-    model_client.async_httpx_client.get.return_value = model_client_response
+    model_client.async_httpx_client.post.return_value = model_client_response
 
     amqp_system = MagicMock()
     if amqp_ok:

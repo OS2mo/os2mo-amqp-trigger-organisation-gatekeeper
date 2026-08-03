@@ -21,7 +21,6 @@ from fastramqpi.raclients.graph.client import PersistentGraphQLClient
 from fastramqpi.raclients.modelclient.mo import ModelClient
 from fastramqpi.ramqp.mo import MOAMQPSystem
 from gql import gql
-from more_itertools import one
 from prometheus_client import Info
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.status import HTTP_204_NO_CONTENT
@@ -92,10 +91,19 @@ async def healthcheck_model_client(model_client: ModelClient) -> bool:
     Returns:
         Whether the client is healthy or not.
     """
+    query = """
+        query HealthcheckQuery {
+            org {
+                uuid
+            }
+        }
+        """
     try:
-        response = await model_client.async_httpx_client.get("/service/o/")
+        response = await model_client.async_httpx_client.post(
+            "/graphql/v22", json={"query": query}
+        )
         result = response.json()
-        if one(result)["uuid"]:
+        if result["data"]["org"]["uuid"]:
             return True
     except Exception:  # pylint: disable=broad-except
         logger.exception("Exception occured during GraphQL healthcheck")
