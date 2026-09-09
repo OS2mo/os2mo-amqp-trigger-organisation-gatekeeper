@@ -3,7 +3,6 @@
 
 from collections.abc import AsyncIterator
 from datetime import datetime
-from unittest.mock import MagicMock
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -29,22 +28,7 @@ from orggatekeeper.main import create_app
 
 
 @pytest.fixture
-def disable_amqp() -> None:
-    """Explicitly request that the AMQP event system be disabled for a test."""
-
-
-@pytest.fixture
-async def app(
-    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
-) -> FastAPI:
-    if "disable_amqp" in request.fixturenames:
-        # The AMQP system lives inside FastRAMQPI, so it must be patched there.
-        noop_amqp_system = MagicMock()
-        noop_amqp_system.router.registry = {}
-        monkeypatch.setattr(
-            "fastramqpi.main.MOAMQPSystem",
-            lambda *args, **kwargs: noop_amqp_system,
-        )
+async def app() -> FastAPI:
     return create_app()
 
 
