@@ -8,22 +8,11 @@ from typing import Any
 from uuid import UUID
 
 import structlog
-from fastramqpi.config import Settings as _FastRAMQPISettings
-from fastramqpi.ramqp.config import AMQPConnectionSettings
+from fastramqpi.config import Settings as FastRAMQPISettings
 from pydantic import BaseSettings
 from pydantic import Field
 
 logger = structlog.get_logger()
-
-
-class OrgGatekeeperConnectionSettings(AMQPConnectionSettings):
-    queue_prefix: str = "os2mo-amqp-trigger-organisation-gatekeeper"
-    # TODO: Ensure we don't crash MO when running somewhat concurrently
-    prefetch_count: int = 1
-
-
-class FastRAMQPISettings(_FastRAMQPISettings):
-    amqp: OrgGatekeeperConnectionSettings
 
 
 class Settings(BaseSettings):
@@ -34,6 +23,16 @@ class Settings(BaseSettings):
         env_nested_delimiter = "__"
 
     fastramqpi: FastRAMQPISettings
+
+    listen_to_changes_in_mo: bool = Field(
+        True,
+        description=(
+            "Declare GraphQL event listeners and process MO changes as they"
+            " happen. On by default; the integration is event-driven and does"
+            " nothing useful without it. Disabled in tests that drive the"
+            " HTTP API directly so background fetchers do not race them."
+        ),
+    )
 
     enable_hide_logic: bool = Field(
         True, description="Whether or not to enable hide logic."

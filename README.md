@@ -5,7 +5,16 @@ SPDX-License-Identifier: MPL-2.0
 
 # Organisation Gatekeeper
 
-This repository contains an OS2mo AMQP Trigger that marks organisation units with one of four categories; Line management, self-owned, hidden or outside hierarchy.
+This repository contains an OS2mo integration that marks organisation units with one of four categories; Line management, self-owned, hidden or outside hierarchy.
+
+It reacts to changes in OS2mo through the MO GraphQL event system. On startup it declares a listener per relevant object type in the `mo` namespace, and MO then delivers events to the matching endpoint:
+
+| Routing key   | Endpoint                    |
+|---------------|-----------------------------|
+| `org_unit`    | `/events/mo/org_unit`       |
+| `ituser`      | `/events/mo/ituser`         |
+| `association` | `/events/mo/association`    |
+| `engagement`  | `/events/mo/engagement`     |
 
 An organisation unit is part of line management if:
 * The unit-level is NY{x}-niveau or Afdelings-niveau.
@@ -25,8 +34,8 @@ Adjust the environment variables either;
 * by creating a `docker-compose.override.yaml` file.
 
 
-* `AMQP__URL`: variable to OS2mo's running message-broker,
 * `SELF_OWNED_IT_SYSTEM_CHECK`: The it-system to check if the unit should be marked as self-owned.
+* `LISTEN_TO_CHANGES_IN_MO`: Whether to declare the GraphQL event listeners and process MO changes as they happen. Defaults to `true`; the integration is event-driven and does nothing useful without it.
 
 ## Usage
 
@@ -38,20 +47,14 @@ docker-compose up -d
 You should see the following:
 ```
 [info     ] Starting metrics server        port=800
-[info     ] Register called                function=organisation_gatekeeper_callback routing_key=org_unit.org_unit.*
-[info     ] Starting AMQP system
-[info     ] Establishing AMQP connection   host=msg_broker path=/ port=5672 scheme=amqp user=guest
-[info     ] Creating AMQP channel
-[info     ] Attaching AMQP exchange to channel exchange=os2mo
-[info     ] Declaring unique message queue function=organisation_gatekeeper_callback queue_name=os2mo-amqp-trigger-organisation-gatekeeper_organisation_gatekeeper_callback
-[info     ] Starting message listener      function=organisation_gatekeeper_callback
-[info     ] Binding routing keys           function=organisation_gatekeeper_callback
-[info     ] Binding routing-key            function=organisation_gatekeeper_callback routing_key=org_unit.org_unit.*
+[info     ] Starting GraphQL event fetchers
+[info     ] Declaring listener             listener=Listener(namespace='mo', user_key='org_unit', routing_key='org_unit', path='/events/mo/org_unit', parallelism=1)
+[info     ] Starting fetcher               listener=... n=0
 ```
-After which each message will add:
+After which each event will add:
 ```
-[debug    ] Received message               function=organisation_gatekeeper_callback routing_key=org_unit.org_unit.edit
-[info     ] Message received               object_type=org_unit payload=... request_type=edit service_type=org_unit
+[info     ] Received org_unit event        org_unit_event={'subject': '...', 'priority': 10000}
+[info     ] Changes to org_unit or its it-accounts org_unit=...
 ```
 And at which point metrics should be available at `localhost:8000`, and line management information will be updated.
 
@@ -96,12 +99,13 @@ You can use the flags `-vx` where `v` prints the test & `x` makes the test stop 
 
 #### Running the integration tests
 
-To run the integration tests, an AMQP instance must be available.
-
-If an instance is already available, it can be used by configuring the `AMQP__URL`
-environmental variable. Alternatively a RabbitMQ can be started in docker, using:
+The integration tests run against a live OS2mo stack. Start the
+[os2mo](https://github.com/OS2mo/os2mo) stack according to its README, then start
+this integration's stack and run the tests inside it:
 ```
-docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+docker compose up -d --build
+docker compose stop orggatekeeper
+docker compose run --rm orggatekeeper pytest tests/integration
 ```
 
 ## Versioning

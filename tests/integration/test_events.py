@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 """
-Tests the integration through its AMQP event system.
+Tests the integration through the MO GraphQL event system.
 
 These tests check that the different types of events trigger the integration
 as espected. They do not check the entirety of the integration's logic.
