@@ -53,13 +53,21 @@ include:
     - gitlab-ci-templates/integration-test-meta.v1.yml
   - project: labs/salt-automation
     file:
+    - gitlab-ci-templates/common/rules.v1.yml
     - gitlab-ci-templates/common/conventional-commits.v1.yml
-    - gitlab-ci-templates/python/pytest.v1.yml
     - gitlab-ci-templates/common/docker-release.v1.yml
     - gitlab-ci-templates/common/docker-build-meta.v2.yml
     - gitlab-ci-templates/common/pre-commit.v1.yml
     - gitlab-ci-templates/common/config-updater-flux.v1.yml
     - gitlab-ci-templates/common/config-updater-salt.v1.yml
+  - project: labs/salt-automation
+    file:
+      - /gitlab-ci-templates/python/pytest.v1.yml
+    inputs:
+      pytest_addopts: "-m 'not integration_test'"
+    rules:
+      - <<: *if-merge-request
+
 
 # Build
 ########
@@ -70,10 +78,6 @@ Build:
 
 # Test
 #######
-Test:
-  variables:
-    PYTEST_ADDOPTS: "-m 'not integration_test'"
-
 Integration-test:
   extends:
     - .integration-test:mo
